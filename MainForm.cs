@@ -33,7 +33,7 @@ namespace schematingLevelMove
 
         public static NbtFile migratedSchem;
 
-        public string newShemName;
+        public static string newShemName;
 
 
         public MainForm()
@@ -170,12 +170,13 @@ namespace schematingLevelMove
                         if (!isNew) oldIds.Add(id, name);
                         else newIds.Add(name, id);
                         i++;
-                        if (i % 5 == 0)
+                        if (i % 100 == 0)
                         {
                             Thread.Sleep(1);
                             i = 0;
                         }
                         loadForm.UdpateProgressBar();
+
                     }
                 });
                 loadForm.Close();
@@ -187,16 +188,24 @@ namespace schematingLevelMove
         public void migrate(object sender, EventArgs e)
         {
             if (!lofIsLoaded) { MessageBox.Show("Изначальный level.dat не загружен"); return; }
-            if (!lnfIsLoaded) { MessageBox.Show("Переходной level.dat не загружен"); return; }
+            if (!lnfIsLoaded) { MessageBox.Show("Конечный level.dat не загружен"); return; }
 
             //if (schemFile == null) { MessageBox.Show("Схематик не загружен"); return; }
-
-            toSave.SaveToFile(newShemName, NbtCompression.None);
+            NameSchemForm nsf = new NameSchemForm();
+            newShemName = "sch" + DateTime.Now.Ticks + ".schematic";
+            nsf.Show();
         }
 
-        public NbtFile createSchemFile()
+        public static void saveFile()
+        {
+            NbtFile toSave = createSchemFile();
+            toSave.SaveToFile(newShemName, NbtCompression.GZip);
+        }
+
+        public static NbtFile createSchemFile()
         {
             var nbt = schemFile.RootTag;
+            Console.WriteLine(nbt);
 
             var usedBlocks = getUsedBlockStringId(nbt);
 
@@ -208,8 +217,10 @@ namespace schematingLevelMove
             {
                 new NbtByteArray("Blocks", blocks),
                 new NbtString("Materials",nbt.Get<NbtString>("Materials").Value),
-                new NbtByteArray("AddBlocks", addBlocks),
                 new NbtByteArray("Data",nbt.Get<NbtByteArray>("Data").Value),
+                new NbtByteArray("AddBlocks", addBlocks),
+                new NbtList(nbt.Get<NbtList>("TileEntities")),
+                new NbtList(nbt.Get<NbtList>("Entities")),
                 new NbtShort("Length",nbt.Get<NbtShort>("Length").Value),
                 new NbtInt("WEOffsetX",nbt.Get<NbtInt>("WEOffsetX").Value),
                 new NbtInt("WEOffsetY",nbt.Get<NbtInt>("WEOffsetY").Value),
@@ -224,7 +235,7 @@ namespace schematingLevelMove
             return new NbtFile(nbtToSave);
         }
 
-        public List<int> getUsedBlockStringId(NbtCompound nbt)
+        public static List<int> getUsedBlockStringId(NbtCompound nbt)
         {
             var blocks = nbt.Get<NbtByteArray>("Blocks");
             var addBlocks = nbt.Get<NbtByteArray>("AddBlocks");
@@ -264,7 +275,7 @@ namespace schematingLevelMove
             return usedBlocksIds;
         }
 
-        public byte[] convertToOtherLevelDat(List<int> list, out byte[] addBlocks)
+        public static byte[] convertToOtherLevelDat(List<int> list, out byte[] addBlocks)
         {
             int i = 0;
             byte[] blocks = new byte[list.Count];
