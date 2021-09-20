@@ -38,9 +38,10 @@ namespace schematingLevelMove
 
             saveName.Click += new EventHandler(getName);
 
-            this.Text = "Select schematic name";
+            this.Text = "Set name";
 
-            this.Size = new Size(280, 160);
+            this.Size = new Size(250, 120);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
         }
 
         public void getName(object sender, EventArgs eventArgs)

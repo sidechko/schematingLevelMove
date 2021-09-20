@@ -17,6 +17,7 @@ namespace schematingLevelMove
         public OpenFileDialog levelNew;
         public OpenFileDialog schematic;
 
+
         public Button lOButton;
         public Button lNButton;
         public Button scButton;
@@ -25,6 +26,7 @@ namespace schematingLevelMove
         public static NbtFile levelOldFile;
         public static bool lofIsLoaded = false;
         public static bool lnfIsLoaded = false;
+        public static bool schemIsLoaded = false;
         public static NbtFile levelNewFile;
         public static NbtFile schemFile;
 
@@ -65,6 +67,9 @@ namespace schematingLevelMove
             this.Controls.Add(saveButton);
 
             this.Size = new Size(320, 280);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+
+            this.Text = "Shematic Migrate App";
 
             saveButton.Click += new EventHandler(migrate);
         }
@@ -101,6 +106,7 @@ namespace schematingLevelMove
                     break;
                 case "s":
                     schemFile = ReadFile(schematic, ref iDo);
+                    if (iDo) schemIsLoaded = true;
                     break;
                 default:
                     MessageBox.Show("Error");
@@ -122,10 +128,6 @@ namespace schematingLevelMove
                     }
                     nbtFile.LoadFromStream(opf.OpenFile(), NbtCompression.AutoDetect);
                     iDo = true;
-                    if (opf.FileName.Contains(".schem"))
-                    {
-                        
-                    }
                     return nbtFile;
                 }
                 catch (SecurityException ex)
@@ -140,18 +142,23 @@ namespace schematingLevelMove
         public void loadLevelDat(bool isNew, string title)
         {
             var tmp = isNew ? levelNewFile : levelOldFile;
-            NbtList rawNbt = new NbtList();
-            rawNbt = tmp.RootTag
-                            .Get<NbtCompound>("FML")
+
+            if (tmp.RootTag.Get<NbtCompound>("FML") == null) {
+                MessageBox.Show("Файл не коректен, попробуйте другой"); 
+                return; 
+            }
+
+            NbtList rawNbt = tmp.RootTag.Get<NbtCompound>("FML")
                             .Get<NbtCompound>("Registries")
                             .Get<NbtCompound>("minecraft:blocks")
                             .Get<NbtList>("ids");
-            //MessageBox.Show("Похоже вы загрузили не верный файл, попробуйте другой");
-
+            
             if (rawNbt == null) {
                 MessageBox.Show("Похоже вы загрузили не верный файл, попробуйте другой"); 
             }
+
             var nbt = rawNbt.ToArray().ToList<NbtTag>();
+            
             if (!isNew) oldIds.Clear();
             else newIds.Clear();
 
@@ -160,7 +167,7 @@ namespace schematingLevelMove
                 else lofIsLoaded = false;
                 LoadFileForm loadForm = new LoadFileForm(nbt.Count, title);
                 loadForm.Show();
-                int i = 0;
+
                 nbt.ForEach(delegate (NbtTag tag) {
                     if (tag is NbtCompound ntag)
                     {
@@ -169,17 +176,13 @@ namespace schematingLevelMove
                         Console.WriteLine(String.Format("{0}  {1}", id, name));
                         if (!isNew) oldIds.Add(id, name);
                         else newIds.Add(name, id);
-                        i++;
-                        if (i % 100 == 0)
-                        {
-                            Thread.Sleep(1);
-                            i = 0;
-                        }
                         loadForm.UdpateProgressBar();
 
                     }
                 });
+
                 loadForm.Close();
+
                 if (isNew) lnfIsLoaded = true;
                 else lofIsLoaded = true;
             });
@@ -189,11 +192,9 @@ namespace schematingLevelMove
         {
             if (!lofIsLoaded) { MessageBox.Show("Изначальный level.dat не загружен"); return; }
             if (!lnfIsLoaded) { MessageBox.Show("Конечный level.dat не загружен"); return; }
-
-            //if (schemFile == null) { MessageBox.Show("Схематик не загружен"); return; }
-            NameSchemForm nsf = new NameSchemForm();
+            if (!schemIsLoaded) { MessageBox.Show("Схематик не загружен"); return; }
             newShemName = "sch" + DateTime.Now.Ticks + ".schematic";
-            nsf.Show();
+            new NameSchemForm().Show();
         }
 
         public static void saveFile()
@@ -216,20 +217,20 @@ namespace schematingLevelMove
             NbtCompound nbtToSave = new NbtCompound("Schematic")
             {
                 new NbtByteArray("Blocks", blocks),
-                new NbtString("Materials",nbt.Get<NbtString>("Materials").Value),
-                new NbtByteArray("Data",nbt.Get<NbtByteArray>("Data").Value),
+                new NbtString(nbt.Get<NbtString>("Materials")),
+                new NbtByteArray(nbt.Get<NbtByteArray>("Data")),
                 new NbtByteArray("AddBlocks", addBlocks),
                 new NbtList(nbt.Get<NbtList>("TileEntities")),
                 new NbtList(nbt.Get<NbtList>("Entities")),
-                new NbtShort("Length",nbt.Get<NbtShort>("Length").Value),
-                new NbtInt("WEOffsetX",nbt.Get<NbtInt>("WEOffsetX").Value),
-                new NbtInt("WEOffsetY",nbt.Get<NbtInt>("WEOffsetY").Value),
-                new NbtInt("WEOriginZ",nbt.Get<NbtInt>("WEOriginZ").Value),
-                new NbtInt("WEOffsetZ",nbt.Get<NbtInt>("WEOffsetZ").Value),
-                new NbtShort("Height",nbt.Get<NbtShort>("Height").Value),
-                new NbtInt("WEOriginY",nbt.Get<NbtInt>("WEOriginY").Value),
-                new NbtInt("WEOriginX",nbt.Get<NbtInt>("WEOriginX").Value),
-                new NbtShort("Width",nbt.Get<NbtShort>("Width").Value)
+                new NbtShort(nbt.Get<NbtShort>("Length")),
+                new NbtInt(nbt.Get<NbtInt>("WEOffsetX")),
+                new NbtInt(nbt.Get<NbtInt>("WEOffsetY")),
+                new NbtInt(nbt.Get<NbtInt>("WEOriginZ")),
+                new NbtInt(nbt.Get<NbtInt>("WEOffsetZ")),
+                new NbtShort(nbt.Get<NbtShort>("Height")),
+                new NbtInt(nbt.Get<NbtInt>("WEOriginY")),
+                new NbtInt(nbt.Get<NbtInt>("WEOriginX")),
+                new NbtShort(nbt.Get<NbtShort>("Width"))
             };
 
             return new NbtFile(nbtToSave);
@@ -270,7 +271,8 @@ namespace schematingLevelMove
             List<int> usedBlocksIds = new List<int>();
             foreach(string a in usedBlocks)
             {
-                usedBlocksIds.Add(newIds[a]);
+                try { usedBlocksIds.Add(newIds[a]); }
+                catch { usedBlocksIds.Add(0); }
             }
             return usedBlocksIds;
         }

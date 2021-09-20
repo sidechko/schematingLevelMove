@@ -15,8 +15,6 @@ namespace schematingLevelMove
     {
 
         public ProgressBar progressBar;
-
-        public static Dispatcher thisDispather = Dispatcher.CurrentDispatcher;
         public LoadFileForm(int maximumProgress, string title)
         {
             InitializeComponent();
@@ -36,6 +34,7 @@ namespace schematingLevelMove
             this.Controls.Add(progressBar);
 
             this.Size = new Size(550, 100);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
         }
 
         public void UdpateProgressBar()
