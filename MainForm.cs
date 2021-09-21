@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using fNbt;
 using System.Windows.Threading;
 using System.Threading;
+using System.IO;
 
 namespace schematingLevelMove
 {
@@ -16,7 +17,7 @@ namespace schematingLevelMove
         public OpenFileDialog levelOld;
         public OpenFileDialog levelNew;
         public OpenFileDialog schematic;
-
+        public SaveFileDialog saveNewSchematic;
 
         public Button lOButton;
         public Button lNButton;
@@ -35,16 +36,16 @@ namespace schematingLevelMove
 
         public static NbtFile migratedSchem;
 
-        public static string newShemName;
-
 
         public MainForm()
         {
             InitializeComponent();
-            Console.WriteLine(newShemName);
             levelNew = new OpenFileDialog();
             levelOld = new OpenFileDialog();
             schematic = new OpenFileDialog();
+            saveNewSchematic = new SaveFileDialog() { 
+                DefaultExt = ".schematic"
+            };
 
             lOButton = CustomButton("Select level.dat old", 'o', 20);
             lNButton = CustomButton("Select level.dat new", 'n', 60);
@@ -173,7 +174,6 @@ namespace schematingLevelMove
                     {
                         int id = ntag.Get<NbtInt>("V").IntValue;
                         string name = ntag.Get<NbtString>("K").StringValue;
-                        Console.WriteLine(String.Format("{0}  {1}", id, name));
                         if (!isNew) oldIds.Add(id, name);
                         else newIds.Add(name, id);
                         loadForm.UdpateProgressBar();
@@ -193,20 +193,24 @@ namespace schematingLevelMove
             if (!lofIsLoaded) { MessageBox.Show("Изначальный level.dat не загружен"); return; }
             if (!lnfIsLoaded) { MessageBox.Show("Конечный level.dat не загружен"); return; }
             if (!schemIsLoaded) { MessageBox.Show("Схематик не загружен"); return; }
-            newShemName = "sch" + DateTime.Now.Ticks + ".schematic";
-            new NameSchemForm().Show();
+            saveNewSchematic.FileName = "sch" + DateTime.Now.Ticks + ".schematic";
+            if (saveNewSchematic.ShowDialog() == DialogResult.OK)
+            {
+                Stream fileStream = saveNewSchematic.OpenFile();
+                NbtFile toSave = createSchemFile();
+                toSave.SaveToStream(fileStream,NbtCompression.GZip);
+                fileStream.Close();
+            }
+            
         }
 
         public static void saveFile()
         {
-            NbtFile toSave = createSchemFile();
-            toSave.SaveToFile(newShemName, NbtCompression.GZip);
         }
 
         public static NbtFile createSchemFile()
         {
             var nbt = schemFile.RootTag;
-            Console.WriteLine(nbt);
 
             var usedBlocks = getUsedBlockStringId(nbt);
 
